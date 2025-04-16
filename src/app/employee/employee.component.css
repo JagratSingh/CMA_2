@@ -1,0 +1,75 @@
+/* General container styling */
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Header styling */
+h2 {
+    text-align: center;
+    color: #333;
+    font-weight: bold;
+}
+
+h4 {
+    color: #555;
+    margin-bottom: 15px;
+}
+
+/* Table styling */
+.table {
+    background-color: #fff;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.table th {
+    background-color: #007bff;
+    color: #fff;
+    text-align: center;
+    padding: 10px;
+}
+
+.table td {
+    text-align: center;
+    padding: 8px;
+    border: 1px solid #ddd;
+}
+
+.table tbody tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+/* Form styling */
+.form-group {
+    margin-bottom: 15px;
+}
+
+label {
+    font-weight: bold;
+    color: #333;
+}
+
+input.form-control {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 8px;
+    width: 100%;
+}
+
+button.btn-primary {
+    background-color: #007bff;
+    border: none;
+    padding: 10px 20px;
+    color: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button.btn-primary:hover {
+    background-color: #0056b3;
+}
