@@ -10,8 +10,6 @@
           <th>Check-Out</th>
           <th>Status</th>
           <th>Adjustment Pending</th>
-          <th>Reason</th>
-          <th>Requested Change</th>
         </tr>
       </thead>
       <tbody>
@@ -21,8 +19,6 @@
           <td>{{ formatTime(record.checkOut) }}</td>
           <td>{{ record.status }}</td>
           <td>{{ record.requestPending ? 'Yes' : 'No' }}</td>
-          <td>{{ record.reason || '-' }}</td>
-          <td>{{ record.requestedChange || '-' }}</td>
         </tr>
       </tbody>
     </table>
@@ -31,7 +27,7 @@
     <form (ngSubmit)="requestAdjustment()">
       <div class="form-group mt-2">
         <label>Date:</label>
-        <input type="date" [(ngModel)]="date" name="date" class="form-control" required />
+        <input type="date" [(ngModel)]="date" name="date" class="form-control" (change)="checkDate($event)" required />
       </div>
       <div class="form-group mt-2">
         <label>Check-In:</label>
