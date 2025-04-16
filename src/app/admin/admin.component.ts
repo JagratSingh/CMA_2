@@ -20,9 +20,7 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   loadAllAttendance(): void {
-    this.attendanceService.getPendingAdjustments().subscribe(records => {
-      this.allAttendance = records;
-    });
+    this.allAttendance = this.attendanceService.getDraftAdjustments();
   }
 
   approve(employeeId: number, date: string): void {
