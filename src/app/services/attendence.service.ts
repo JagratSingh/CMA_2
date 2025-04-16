@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import { Attendance } from '../app.model';
-import { BehaviorSubject, Observable } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -12,42 +11,44 @@ export class AttendanceService {
       checkIn: '09:00',
       checkOut: '15:00',
       status: 'Present',
-      employeeId: 2
+      employeeId: 2,
+      requestPending: false,
     },
     {
       date: '2025-04-15',
       checkIn: '09:15',
       checkOut: '18:30',
       status: 'Present',
-      employeeId: 3
+      employeeId: 3,
+      requestPending: false,
     },
     {
       date: '2025-04-16',
       checkIn: '09:10',
       checkOut: '17:00',
       status: 'Present',
-      employeeId: 2
+      employeeId: 2,
+      requestPending: false,
     },
     {
       date: '2025-04-14',
       checkIn: '09:05',
       checkOut: '16:45',
       status: 'Present',
-      employeeId: 3
+      employeeId: 3,
+      requestPending: false,
     },
     {
       date: '2025-04-13',
       checkIn: '09:20',
       checkOut: '17:30',
       status: 'Present',
-      employeeId: 2
+      employeeId: 2,
+      requestPending: false,
     }
   ];
 
-  private pendingAdjustments: Attendance[] = [];
-
-  private attendanceSubject = new BehaviorSubject<Attendance[]>(this.attendanceRecords);
-  private pendingSubject = new BehaviorSubject<Attendance[]>(this.pendingAdjustments);
+  private draftRecords: Attendance[] = [];
 
   constructor() {
     this.loadFromLocalStorage();
@@ -55,38 +56,34 @@ export class AttendanceService {
 
   private loadFromLocalStorage(): void {
     const records = localStorage.getItem('attendanceRecords');
-    const pending = localStorage.getItem('pendingAdjustments');
     if (records) {
       this.attendanceRecords = JSON.parse(records);
-      this.attendanceSubject.next(this.attendanceRecords);
     }
-    if (pending) {
-      this.pendingAdjustments = JSON.parse(pending);
-      this.pendingSubject.next(this.pendingAdjustments);
+    const drafts = localStorage.getItem('draftRecords');
+    if (drafts) {
+      this.draftRecords = JSON.parse(drafts);
     }
   }
 
   private saveToLocalStorage(): void {
     localStorage.setItem('attendanceRecords', JSON.stringify(this.attendanceRecords));
-    localStorage.setItem('pendingAdjustments', JSON.stringify(this.pendingAdjustments));
+    localStorage.setItem('draftRecords', JSON.stringify(this.draftRecords));
   }
 
-  getAllAttendance(): Observable<Attendance[]> {
-    return this.attendanceSubject.asObservable();
+  getAllAttendance(): Attendance[] {
+    return [...this.attendanceRecords];
   }
 
-  getPendingAdjustments(): Observable<Attendance[]> {
-    return this.pendingSubject.asObservable();
+  getDraftAdjustments(): Attendance[] {
+    return [...this.draftRecords];
   }
 
-  getAttendanceByEmployeeId(employeeId: number): Observable<Attendance[]> {
-    const filtered = this.attendanceRecords.filter(r => r.employeeId === employeeId);
-    return new BehaviorSubject<Attendance[]>(filtered).asObservable();
+  getAttendanceByEmployeeId(employeeId: number): Attendance[] {
+    return this.attendanceRecords.filter(r => r.employeeId === employeeId);
   }
 
-  getPendingByEmployeeId(employeeId: number): Observable<Attendance[]> {
-    const filtered = this.pendingAdjustments.filter(r => r.employeeId === employeeId);
-    return new BehaviorSubject<Attendance[]>(filtered).asObservable();
+  getDraftsByEmployeeId(employeeId: number): Attendance[] {
+    return this.draftRecords.filter(r => r.employeeId === employeeId);
   }
 
   requestAdjustment(
@@ -97,12 +94,11 @@ export class AttendanceService {
     reason: string,
     requestedChange: string
   ): void {
-    // Check if there is already a pending adjustment for the given employee and date
-    const existingIndex = this.pendingAdjustments.findIndex(
+    const existingDraftIndex = this.draftRecords.findIndex(
       a => a.employeeId === employeeId && a.date === date
     );
-  
-    const newRequest: Attendance = {
+
+    const draft: Attendance = {
       employeeId,
       date,
       checkIn,
@@ -112,55 +108,67 @@ export class AttendanceService {
       reason,
       requestedChange
     };
-  
-    if (existingIndex !== -1) {
-      // If a pending request exists, update the reason and requestedChange
-      this.pendingAdjustments[existingIndex].reason = reason;
-      this.pendingAdjustments[existingIndex].requestedChange = requestedChange;
+
+    if (existingDraftIndex !== -1) {
+      this.draftRecords[existingDraftIndex] = draft;
     } else {
-      // Otherwise, push a new request
-      this.pendingAdjustments.push(newRequest);
+      this.draftRecords.push(draft);
     }
-  
-    // Update the pending adjustments observable
-    this.pendingSubject.next(this.pendingAdjustments);
+
+    const recordIndex = this.attendanceRecords.findIndex(
+      r => r.employeeId === employeeId && r.date === date
+    );
+
+    if (recordIndex !== -1) {
+      this.attendanceRecords[recordIndex].status = 'Pending Approval';
+      this.attendanceRecords[recordIndex].requestPending = true;
+    }
+
     this.saveToLocalStorage();
   }
-  
 
   approveAdjustment(date: string, employeeId: number): void {
-    const pendingIndex = this.pendingAdjustments.findIndex(
+    const draftIndex = this.draftRecords.findIndex(
       a => a.employeeId === employeeId && a.date === date
     );
 
-    if (pendingIndex !== -1) {
-      const approved = { ...this.pendingAdjustments[pendingIndex] };
-      approved.status = 'Present';
-      approved.requestPending = false;
+    if (draftIndex === -1) return;
 
-      const existingIndex = this.attendanceRecords.findIndex(
-        r => r.employeeId === employeeId && r.date === date
-      );
+    const approved = { ...this.draftRecords[draftIndex] };
+    approved.status = 'Adjusted';
+    approved.requestPending = false;
 
-      if (existingIndex !== -1) {
-        this.attendanceRecords[existingIndex] = approved;
-      } else {
-        this.attendanceRecords.push(approved);
-      }
+    const recordIndex = this.attendanceRecords.findIndex(
+      r => r.employeeId === employeeId && r.date === date
+    );
 
-      this.pendingAdjustments.splice(pendingIndex, 1);
-
-      this.attendanceSubject.next(this.attendanceRecords);
-      this.pendingSubject.next(this.pendingAdjustments);
-      this.saveToLocalStorage();
+    if (recordIndex !== -1) {
+      this.attendanceRecords[recordIndex] = approved;
+    } else {
+      this.attendanceRecords.push(approved);
     }
+
+    this.draftRecords.splice(draftIndex, 1);
+    this.saveToLocalStorage();
   }
 
   rejectAdjustment(date: string, employeeId: number): void {
-    this.pendingAdjustments = this.pendingAdjustments.filter(
-      a => !(a.employeeId === employeeId && a.date === date)
+    const draftIndex = this.draftRecords.findIndex(
+      a => a.employeeId === employeeId && a.date === date
     );
-    this.pendingSubject.next(this.pendingAdjustments);
+
+    if (draftIndex === -1) return;
+
+    const recordIndex = this.attendanceRecords.findIndex(
+      r => r.employeeId === employeeId && r.date === date
+    );
+
+    if (recordIndex !== -1) {
+      this.attendanceRecords[recordIndex].status = 'Rejected';
+      this.attendanceRecords[recordIndex].requestPending = false;
+    }
+
+    this.draftRecords.splice(draftIndex, 1);
     this.saveToLocalStorage();
   }
 }
