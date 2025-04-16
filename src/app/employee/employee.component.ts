@@ -29,18 +29,22 @@ export class EmployeeDashboardComponent implements OnInit {
   }
 
   loadAttendance(): void {
-    this.attendanceService.getAttendanceByEmployeeId(this.employeeId).subscribe(records => {
-      this.attendanceList = records;
-    });
+    this.attendanceList = this.attendanceService.getAttendanceByEmployeeId(this.employeeId)
   }
-  
-  pendingAttendance(): void {
-    this.attendanceService.getPendingByEmployeeId(this.employeeId).subscribe(records => {
-      this.attendanceList = records;
-    });
+
+  attendenceExists(date: string): boolean {
+    return this.attendanceList.some(r => r.employeeId === this.employeeId && r.date === date);
+  }
+
+  checkDate(event: any) {
+    if (!this.attendenceExists(event.target.value)) {
+      alert('Attendance does not exists for this date.');
+      event.target.value = '';
+    }
   }
 
   requestAdjustment(): void {
+
     if (!this.date || !this.checkIn || !this.checkOut || !this.reason.trim() || !this.requestedChange.trim()) {
       alert('Please fill all fields including Reason and Requested Change.');
       return;
@@ -57,7 +61,7 @@ export class EmployeeDashboardComponent implements OnInit {
 
     alert('Adjustment request submitted.');
     this.resetForm();
-    this.pendingAttendance();
+    this.loadAttendance();
   }
 
   resetForm(): void {
